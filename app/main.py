@@ -1,8 +1,23 @@
-{\rtf1\ansi\ansicpg1252\cocoartf2821
-\cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fswiss\fcharset0 Helvetica;}
-{\colortbl;\red255\green255\blue255;}
-{\*\expandedcolortbl;;}
-\margl1440\margr1440\vieww11520\viewh8400\viewkind0
-\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+from fastapi import FastAPI, UploadFile, File
+from fastapi.middleware.cors import CORSMiddleware
+from app.predictor import run_prediction
+from app.feedback import save_feedback
 
-\f0\fs24 \cf0 ##}
+app = FastAPI()
+
+# Enable frontend-backend connection
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Replace with specific domain for production
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+@app.post("/predict")
+async def predict_style(file: UploadFile = File(...)):
+    return await run_prediction(file)
+
+@app.post("/feedback")
+async def submit_feedback(data: dict):
+    return save_feedback(data)
