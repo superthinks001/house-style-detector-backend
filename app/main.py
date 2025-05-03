@@ -21,3 +21,9 @@ async def predict_style(file: UploadFile = File(...)):
 @app.post("/feedback")
 async def submit_feedback(data: dict):
     return save_feedback(data)
+
+import os
+
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 8080))
+    uvicorn.run("app.main:app", host="0.0.0.0", port=port)
