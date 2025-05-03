@@ -1,8 +1,43 @@
-{\rtf1\ansi\ansicpg1252\cocoartf2821
-\cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fswiss\fcharset0 Helvetica;}
-{\colortbl;\red255\green255\blue255;}
-{\*\expandedcolortbl;;}
-\margl1440\margr1440\vieww11520\viewh8400\viewkind0
-\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+import tempfile
+from ultralytics import YOLO
+from fastapi.responses import JSONResponse
+from PIL import Image
+import io
 
-\f0\fs24 \cf0 ##}
+# Load the model once when the app starts
+model = YOLO("weights/best.pt")
+
+# Load style config
+import json
+with open("style_config.json", "r") as f:
+    STYLE_LABELS = json.load(f)["labels"]
+
+async def run_prediction(file):
+    try:
+        # Save uploaded image to a temporary location
+        contents = await file.read()
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as temp_img:
+            temp_img.write(contents)
+            temp_path = temp_img.name
+
+        # Run YOLOv8 inference
+        results = model(temp_path)
+
+        # Assume single object detection per image
+        pred = results[0].probs
+        predicted_index = int(pred.top1)
+        predicted_style = STYLE_LABELS[predicted_index]
+        confidence = round(float(pred.top1conf), 4)
+
+        return JSONResponse(
+            content={
+                "predicted_style": predicted_style,
+                "predicted_confidence": confidence
+            },
+            status_code=200
+        )
+    except Exception as e:
+        return JSONResponse(
+            content={"error": str(e)},
+            status_code=500
+        )
